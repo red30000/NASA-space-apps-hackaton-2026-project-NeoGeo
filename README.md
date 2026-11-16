@@ -1,4 +1,4 @@
-# Geonova SAR Response Explorer — integrated experimental build
+# NeoGeo enviromental SAR monitoring platform
 
 ## Launch
 ```bash
