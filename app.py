@@ -15,8 +15,8 @@ from rasterio.transform import rowcol
 from pyproj import Transformer
 import pandas as pd
 #configure the page and front/end
-st.set_page_config(page_title='Geonova | SAR Response Explorer', layout='wide')
-st.title('GEONOVA | SAR Response Explorer — Integrated')
+st.set_page_config(page_title='NeoGeo | SAR Response Explorer', layout='wide')
+st.title('NeoGeo | SAR Response Explorer — Integrated')
 st.caption('Two-date SAR backscatter analysis • exploratory flood screening • spatial uncertainty indicators')
 st.warning('Screening tool only. Radar backscatter change is NOT confirmed flooding, water depth, ground deformation, or a safe rescue route. Validate with field reports, weather, optical imagery, and additional SAR acquisitions.')
 #had to ask Chatgpt for help with the side-bar
@@ -307,11 +307,11 @@ if before_file and after_file:
         overlay_buffer=io.BytesIO()
 #export 
         Image.fromarray(display).save(overlay_buffer,format='PNG')
-        c1.download_button('Download response overlay (PNG)',overlay_buffer.getvalue(),file_name='geonova_response_overlay.png',mime='image/png')
-        c2.download_button('Download change (dB) GeoTIFF',tif_bytes(delta,profile,'After minus before (dB)'),file_name='geonova_change_db.tif',mime='image/tiff')
-        c3.download_button('Download classification GeoTIFF',tif_bytes(classes,profile,'0 unflagged; 1 decrease; 2 increase; 3 possible water expansion; 255 nodata','uint8'),file_name='geonova_screening_classes.tif',mime='image/tiff')
+        c1.download_button('Download response overlay (PNG)',overlay_buffer.getvalue(),file_name='NeoGeo_response_overlay.png',mime='image/png')
+        c2.download_button('Download change (dB) GeoTIFF',tif_bytes(delta,profile,'After minus before (dB)'),file_name='NeoGeo_change_db.tif',mime='image/tiff')
+        c3.download_button('Download classification GeoTIFF',tif_bytes(classes,profile,'0 unflagged; 1 decrease; 2 increase; 3 possible water expansion; 255 nodata','uint8'),file_name='NeoGeo_screening_classes.tif',mime='image/tiff')
         summary={'source':('NISAR HDF5 (user-provided; metadata-validated)' if mode.startswith('Geocoded') else 'User-supplied GeoTIFF (verify mission from filename/metadata)'),'polarization':band,'input_units':units,'valid_pixels':int(valid.sum()),'change_threshold_db':threshold,'effective_threshold_db':round(effective,3),'robust_scene_spread_db':round(robust_sigma,3),'median_scene_shift_db':round(bias,3),'flagged_pixels':int(hotspots.sum()),'flagged_area_km2':round(changed_area,3),'potential_water_expansion_km2':round(flood_area,3),'note':'Unvalidated radar change screening. Water expansion is a candidate only, not confirmed flooding.'}
-        st.download_button('Download analysis summary (JSON)',json.dumps(summary,indent=2),file_name='geonova_analysis.json',mime='application/json')
+        st.download_button('Download analysis summary (JSON)',json.dumps(summary,indent=2),file_name='NeoGeo_analysis.json',mime='application/json')
     except Exception as exc:
         st.exception(exc)
 else:
