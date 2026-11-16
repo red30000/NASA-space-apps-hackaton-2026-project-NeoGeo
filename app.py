@@ -1,4 +1,4 @@
-
+# Chatgpt helped with getting the list of imports and useful tools(I still had to put it in by hand)
 import io
 import json
 import numpy as np
@@ -14,12 +14,12 @@ from nisar_io import inspect_hdf5, load_geocoded_hdf5
 from rasterio.transform import rowcol
 from pyproj import Transformer
 import pandas as pd
-
+#configure the page and front/end
 st.set_page_config(page_title='Geonova | SAR Response Explorer', layout='wide')
 st.title('GEONOVA | SAR Response Explorer — Integrated')
 st.caption('Two-date SAR backscatter analysis • exploratory flood screening • spatial uncertainty indicators')
 st.warning('Screening tool only. Radar backscatter change is NOT confirmed flooding, water depth, ground deformation, or a safe rescue route. Validate with field reports, weather, optical imagery, and additional SAR acquisitions.')
-
+#had to ask Chatgpt for help with the side-bar
 with st.sidebar:
     st.header('Analysis controls')
     units=st.selectbox('Input backscatter units',['linear power','dB'])
@@ -32,7 +32,7 @@ with st.sidebar:
     proximity=st.slider('Near pre-existing dark-water pixels (pixels)',0,40,12)
     opacity=st.slider('Hotspot overlay opacity',0.2,1.0,0.8,0.05)
     st.caption('NISAR support: geocoded, real-valued HDF5 raster layers with verifiable coordinates and EPSG only.')
-
+#never worked with GeoTIFF, had to use ai help for it
 st.subheader('1 · Import radar acquisitions')
 mode=st.radio('Source format',['GeoTIFF (Sentinel-1 or exported NISAR)','Geocoded NISAR HDF5 (experimental)'],horizontal=True)
 before_file=st.file_uploader('Before acquisition',type=['tif','tiff'] if mode.startswith('GeoTIFF') else ['h5','hdf5'],key='before')
@@ -72,7 +72,7 @@ def median_valid(arr, size):
     result=median_filter(filled,size=size,mode='nearest')
     result[~good]=np.nan
     return result
-
+#check changes within files
 def remove_small(mask,n):
     if n<=1:return mask
     labs,k=label(mask)
@@ -87,7 +87,7 @@ def stretched(arr,lo,hi):
 
 def png_bytes(fig):
     b=io.BytesIO();fig.savefig(b,format='png',dpi=170,bbox_inches='tight',facecolor='white');return b.getvalue()
-
+#had to use Chat gpt for this section
 def tif_bytes(array,profile,description,dtype='float32'):
     prof=profile.copy();prof.update(count=1,dtype=dtype,nodata=-9999 if dtype=='float32' else 255,compress='deflate')
     with MemoryFile() as m:
@@ -132,14 +132,14 @@ if before_file and after_file:
             hotspots=remove_small(changed,min_patch)
             decreases=hotspots&(delta<0)
             increases=hotspots&(delta>0)
-            # Darkening near previously radar-dark areas is only a flood screening heuristic.
+# Darkening near previously "radar-dark" areas is only a flood screening heuristics.
             old_dark=valid&(x<water_db)
             near_water=binary_dilation(old_dark,iterations=proximity) if proximity else old_dark
             flood_candidates=remove_small(decreases&(y<water_db)&(~old_dark)&near_water,min_patch)
-            # Relative confidence proxy: margin above threshold, not calibrated statistical probability.
+# Relative confidence proxy: margin above threshold, it's not calibrated statistical probability.
             strength=np.where(valid,np.maximum(0,np.abs(delta)-effective)/max(robust_sigma,0.1),0)
             strong=hotspots&(strength>=1.5)
-            # Per-pixel geodesic surface area in km2, using the center latitude of each row.
+# Per-pixel geodesic surface area in km2, used center latitude of each row.
             from pyproj import Geod
             geod=Geod(ellps='WGS84')
             h,w=x.shape
@@ -150,7 +150,7 @@ if before_file and after_file:
                     a,b=t1*(0,r);c,d=t1*(1,r);e,f=t1*(1,r+1);g,j=t1*(0,r+1)
                     row_areas[r]=abs(geod.polygon_area_perimeter([a,c,e,g],[b,d,f,j])[0])/1e6
             else:
-                # Projected CRS may use non-meter units; use pyproj CRS axis conversion.
+                # Projected CRS may use non-meter units; use pyproj CRS for axis conversion, had to ask Claude for this.
                 from pyproj import CRS
                 c=CRS.from_user_input(crs1)
                 factor=c.axis_info[0].unit_conversion_factor if c.axis_info else 1
@@ -171,7 +171,7 @@ if before_file and after_file:
                 m=classes==code
                 display[m]=display[m]*(1-opacity)+color*opacity
             display=(np.clip(display,0,1)*255).astype('uint8')
-            # Pixel-based area is calculated geodesically; no false precision implied.
+# Pixel-based area is calculated geodesically; no false precision implied.
         st.success('Analysis complete')
         c1,c2,c3,c4=st.columns(4)
         c1.metric('Flagged change pixels',f'{hotspots.sum():,}',f'{hotspots.sum()/valid.sum()*100:.1f}% of valid pixels')
@@ -199,7 +199,7 @@ if before_file and after_file:
         ax.set_xlabel('Radar backscatter difference (dB)');ax.set_ylabel('Sampled pixels');ax.set_title('Distribution of radar changes and screening thresholds')
         st.pyplot(fig2)
         st.caption('Screening assumptions: co-registered acquisitions, same polarization, comparable geometry and calibration. No field validation; water classification may confuse smooth soil, shadows, roads and other low-backscatter surfaces. Near-water distance is in pixels, not meters.')
-        # Coordinate-aware optional map overlay via image extent in latitude/longitude.
+# Coordinate-aware optional map overlay via image extent in latitude/longitude. see actual change as its overlayed
         if crs1:
             try:
                 from rasterio.warp import reproject, Resampling
@@ -215,7 +215,8 @@ if before_file and after_file:
                     tiles="OpenStreetMap",
                     control_scale=True
                 )   
-                # Input raster in this example is EPSG:4326, north-up. For other CRS, omit image overlay rather than misplace it.
+#had to ask chatgot for this part as I had never done it myself
+ # Input raster in this example is EPSG:4326, north-up. For other CRS, omit image overlay rather than misplace it.
                 if crs1.to_epsg()==4326 and abs(t1.b)<1e-9 and abs(t1.d)<1e-9:
                     img=Image.fromarray(display).resize((min(w,1500),max(1,int(h*min(w,1500)/w))))
                     folium.raster_layers.ImageOverlay(image=np.array(img),bounds=[[bottom,left],[top,right]],opacity=0.82,name='SAR screening',interactive=True).add_to(m)
@@ -254,7 +255,7 @@ if before_file and after_file:
                         c3.metric('Recall',f'{tp/(tp+fn):.1%}' if tp+fn else 'N/A')
                         st.write({'true_positive':tp,'true_negative':tn,'false_positive':fp,'false_negative':fn})
                         st.caption('Accuracy estimates apply only to these independently labeled points; spatial sampling bias may be substantial.')
-                        # MODULE 4 — ADDITIONAL VALIDATION RESULTS
+# MODULE 4 — validation results(input a file .csv) and check for data validation
                         st.subheader("Module 4 — Validation Diagnostics")
                         test_mode = st.checkbox
                         "These observations are synthetic test data",
@@ -264,7 +265,6 @@ if before_file and after_file:
                         recall = tp / (tp + fn) if (tp + fn) else None
                         f1 = 2 * tp / (2 * tp + fp + fn) if (2 * tp + fp + fn) else None
                         accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) else None
-
                         if test_mode:
                             st.warning(
                                 "SYNTHETIC TEST: These results verify software behavior, "
@@ -272,7 +272,7 @@ if before_file and after_file:
                             )
 
                         c1, c2, c3, c4 = st.columns(4)
-
+#check precision
                         c1.metric("Precision", f"{precision:.1%}" if precision is not None else "N/A")
                         c2.metric("Recall", f"{recall:.1%}" if recall is not None else "N/A")
                         c3.metric("F1 Score", f"{f1:.1%}" if f1 is not None else "N/A")
@@ -305,6 +305,7 @@ if before_file and after_file:
         st.subheader('5 · Download results')
         c1,c2,c3=st.columns(3)
         overlay_buffer=io.BytesIO()
+#export 
         Image.fromarray(display).save(overlay_buffer,format='PNG')
         c1.download_button('Download response overlay (PNG)',overlay_buffer.getvalue(),file_name='geonova_response_overlay.png',mime='image/png')
         c2.download_button('Download change (dB) GeoTIFF',tif_bytes(delta,profile,'After minus before (dB)'),file_name='geonova_change_db.tif',mime='image/tiff')
